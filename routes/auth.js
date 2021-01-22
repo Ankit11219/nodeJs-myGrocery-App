@@ -1,6 +1,6 @@
 var express = require('express');
 const auth = require('../middleware/auth');
-const UserModel = require('../models/schema/users');
+const UserModel = require('../models/schema/auth');
 const multer = require('multer');
 const sharp = require('sharp');
 var router = express.Router();
@@ -18,20 +18,24 @@ router.get('/profile', auth, async (req, res) => {
     res.status(400).send(err);
   }
 
-})
+});
 
 /**
  * POST
  * Create users through signup
  */
 router.post('/signup', async (req, res) => {
-
   try {
     const user = new UserModel(req.body);
     await user.save();
     res.status(201).send(user);
   } catch (e) {
-    res.status(400).send(e);
+    let err;
+    if(e.code == 11000)
+      err = 'Email already exist';
+    else
+      err = e._message
+    res.status(400).send({message: err});
   }
 
 });
@@ -63,11 +67,6 @@ router.patch('/profile', auth, async (req, res) => {
 });
 
 
-
-router.get('/qwerty', (req, res) => {
-  console.log('testing');
-});
-
 router.delete('/profile', auth, async (req, res) => {
   try {
     // save() is used for save the data to mongoDB 
@@ -86,7 +85,6 @@ const upload = multer({
     fileSize: 1000000
   },
   fileFilter(req, file, cb) {
-    console.log("multer")
     if (!file.originalname.match(/\.(jpeg|jpg|png)$/)) {
       return cb(new Error('Please upload an image'));
     }
@@ -98,7 +96,7 @@ const upload = multer({
 /**
  * POST
  * upload user avatar in Database instead of node-server because
- * when we re-deployed my patch on heroku all the user avatar is losed
+ * when we re-deployed my patch on server like heroku all the user images is gone losed
  */
 
 router.post('/profile/avatar', auth, upload.single('avatar'), async (req, res) => {
@@ -113,7 +111,7 @@ router.post('/profile/avatar', auth, upload.single('avatar'), async (req, res) =
       * because when we use middleware is always through error in html
         to prevent we use this arrow function */
   res.status(400).send({ error: error.message });
-})
+});
 
 /**
  * GET
@@ -136,7 +134,7 @@ router.get('/profile/:id/avatar', async (req, res) => {
   } catch (e) {
     res.status(400).send();
   }
-})
+});
 
 /**
  * DELETE
@@ -148,7 +146,7 @@ router.delete('/profile/avatar', auth, async (req, res) => {
   req.user.avatar = undefined;
   await req.user.save()
   res.send()
-})
+});
 
 
 /**
@@ -156,15 +154,16 @@ router.delete('/profile/avatar', auth, async (req, res) => {
  * login through some credentials
  */
 router.post('/login', async (req, res) => {
-
   try {
     const user = await UserModel.findByCredentials(req.body.email, req.body.password);
 
     const token = await user.generateAuthToken();
 
-    res.send({ user, token });
+    const expiresIn =  3600;
+
+    res.send({ user, token, expiresIn });
   } catch (e) {
-    res.status(400).send(e)
+    res.status(400).send({message: e});
   }
 });
 
@@ -186,7 +185,7 @@ router.get('/logout', auth, async (req, res) => {
   } catch (e) {
     res.status(500).send()
   }
-})
+});
 
 /**
  * GET

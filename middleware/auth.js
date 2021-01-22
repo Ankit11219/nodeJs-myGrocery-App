@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const userModel = require('../models/schema/users');
+const userModel = require('../models/schema/auth');
 const auth = async (req, res, next) => {
     try {
         const token = req.header('Authorization').replace('Bearer ', '');

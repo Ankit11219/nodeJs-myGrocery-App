@@ -14,17 +14,18 @@ const userSchema = new mongoose.Schema({
         lowerCase: true,
         validate(value) {
             if (!validator.isEmail(value))
-                throw new Error('Email is invalid');
+                throw 'Email is invalid';
         }
     },
     phone: {
         type: Number,
-        required: true,
         unique: true,
         validate(value) {
-            var re = /^[1-9][0-9]{9}$/
-            if (!re.test(value))
-                throw new Error('Mobile Number should be 10 digit');
+            if (value) {
+                var re = /^[1-9][0-9]{9}$/
+                if (!re.test(value))
+                    throw 'Mobile Number should be 10 digit';
+            }
         }
     },
     password: {
@@ -35,12 +36,12 @@ const userSchema = new mongoose.Schema({
         validate(value) {
             var re = /^((?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@#$%_]).{6,20})/
             if (!re.test(value))
-                throw new Error('Min length 6, 1 capital, 1 lower and 1 symbol is required');
+                throw new 'Min length 6, atLeast - (1 capital and 1 lower and 1 symbol is required)';
         }
     },
     status: {
         type: String,
-        default: 'registered',
+        default: 'verified',
         enum: ['registered', 'verified']
     },
     role: {
@@ -64,7 +65,7 @@ const userSchema = new mongoose.Schema({
 
 /* whenever we send back the user data this function call automatically and
  delete some field from the user  because we donot want to show password and tokens etc informations*/
-userSchema.methods.toJSON = function() {
+userSchema.methods.toJSON = function () {
     const user = this;
     const userObject = user.toObject();
 
@@ -97,15 +98,15 @@ userSchema.statics.findByCredentials = async (email, password) => {
     const user = await User.findOne({ email }); // {email} short hand syntax for {email: email}
 
     if (!user)
-        throw new Error('Unable to login');
+        throw 'Unable to login';
 
     if (user.status == 'registered')
-        throw new Error('Account is not verified');
+        throw 'Account is not verified';
 
     const isMatch = await bcrypt.compareSync(password, user.password);
 
     if (!isMatch)
-        throw new Error('Unable to login');
+        throw 'Unable to login';
 
 
     return user;
